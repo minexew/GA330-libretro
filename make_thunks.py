@@ -1,0 +1,73 @@
+import sys
+
+IN, MINISYS_C_OUT, MINISYS_H_OUT, NATIVE_OUT = sys.argv[1:]
+
+with open(IN, "rt") as f, open(MINISYS_C_OUT, "wt") as mcf, open(MINISYS_H_OUT, "wt") as mhf, open(NATIVE_OUT, "wt") as nf:
+    nf.write("""/* GENERATED FILE, DO NOT EDIT */
+#include "svc_handlers.h"
+
+""")
+    mcf.write("""/* GENERATED FILE, DO NOT EDIT */
+#include "thunks.h"
+
+""")
+
+    i = 0
+    all_ = []
+    for line in f:
+        name, addr, _ = line.strip().split()
+        all_.append((i, name, int(addr, 16)))
+
+        proto = f"int {name}(int arg1, int arg2, int arg3, int arg4);"
+        mhf.write(proto + "\n");
+
+        # generate thunk for minisys
+        thunk = f"""
+__attribute__((naked)) __attribute__((weak)) int {name}(int arg1, int arg2, int arg3, int arg4) {{
+    __asm(
+        "svc {i} \\r\\n"
+        "bx lr \\r\\n"
+        );
+}}
+"""
+        mcf.write(thunk)
+
+        # generate native handler
+        thunk = f"""
+__attribute__((weak)) int Svc_{name}(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {{
+    printf("THUNK {name} (%08X, %08X, %08X, %08X)\\n", arg0, arg1, arg2, arg3);
+    abort();
+}}
+"""
+        nf.write(thunk)
+
+        i += 1
+
+    # generate native handler table
+
+    nf.write("SvcHandler svc_handler_table[] = {\n")
+    for i, name, addr in all_:
+        nf.write(f"    &Svc_{name},\n")
+    nf.write("};\n")
+
+    mhf.write("void patch_executable(void);\n")
+
+    mcf.write("void patch_executable(void) {\n")
+    for i, name, addr in all_:
+        if not addr: continue   # dynamic load only
+
+        mcf.write(f"""    // {name}
+    //*(unsigned int*)({addr}) = 0xef000000 | {i};
+    //*(unsigned int*)({addr + 4}) = 0xe12fff1e;
+    *(unsigned int*)({addr}) = 0xe51ff004;      // ldr  pc, [pc, #-4]
+    *(unsigned int*)({addr + 4}) = (int) &{name};
+""")
+    mcf.write("}\n")
+
+    mhf.write("typedef struct { const char* name; int (*addr)(int,  int,  int,  int); } OsFunction;\n")
+    mhf.write("extern OsFunction os_function_table[];\n")
+    mcf.write("OsFunction os_function_table[] = {\n")
+    for i, name, addr in all_:
+        mcf.write(f"""    {{"{name}", &{name}}},\n""")
+    mcf.write("    {0, 0},\n")
+    mcf.write("};\n")

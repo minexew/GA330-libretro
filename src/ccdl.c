@@ -1,4 +1,5 @@
 #include "ccdl.h"
+#include "svc_handlers.h"
 
 #include <unicorn/unicorn.h>
 
@@ -8,11 +9,54 @@ enum { OFFSET = 0x52B0 };
 enum { LOAD_ADDRESS = 0x10100000 };
 enum { LOAD_SIZE = 0xDF1B4 };
 enum { ALLOC_SIZE = 0xE9AE0 };
-enum { ENTRY_ADDRESS = 0x10100150 };
-enum { APPMAIN_ADDRESS = 0x101000B4 };
 
 enum { STACK_BOTTOM = 0x1FF00000 };
 enum { STACK_TOP =    0x20000000 };
+
+enum { MINISYS_ADDR = 0x20000000 };
+enum { MINISYS_SIZE = 0x40000 };
+
+static char const* get_string(uc_engine* uc, uint32_t addr) {
+    static char buf[0x1000];
+
+    for (int i = 0;; i++) {
+        uc_mem_read(uc, addr + i, &buf[i], 1);
+        if (!buf[i]) {
+            break;
+        }
+    }
+
+    return buf;
+}
+
+int Svc_GetDLHandle(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
+    return arg0;
+}
+
+int Svc_printf(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
+    printf("%s", get_string(uc, arg0));
+}
+
+int Svc_TaskMediaFunStop(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
+}
+
+static void hook_intr(uc_engine *uc, uint32_t intno, void *user_data) {
+    int regs[4], pc;
+    uc_reg_read(uc, UC_ARM_REG_R0, &regs[0]);
+    uc_reg_read(uc, UC_ARM_REG_R1, &regs[1]);
+    uc_reg_read(uc, UC_ARM_REG_R2, &regs[2]);
+    uc_reg_read(uc, UC_ARM_REG_R3, &regs[3]);
+    uc_reg_read(uc, UC_ARM_REG_PC, &pc);
+
+    uint32_t num = 0xcccccccc;
+    uc_mem_read(uc, pc - 4, &num, 4);
+    num &= 0xffff;
+
+    printf("hook_intr[%d](%08X, %08X, %08X, %08X, %08X)\n", num, pc, regs[0], regs[1], regs[2], regs[3]);
+    uint32_t ret = svc_handler_table[num](uc, regs[0], regs[1], regs[2], regs[3]);
+    printf("    -> %08X\n", ret);
+    uc_reg_write(uc, UC_ARM_REG_R0, &ret);
+}
 
 // callback for tracing invalid memory access (READ/WRITE/EXEC)
 static bool hook_mem_invalid(uc_engine* uc, uc_mem_type type,
@@ -53,15 +97,22 @@ int load_rom(const char* path) {
     fread(buffer, 1, LOAD_SIZE, f);
     fclose(f);
 
+    f = fopen(getenv("MINISYS_BIN"), "rb");
+    uint8_t msbuffer[MINISYS_SIZE];
+    fread(msbuffer, 1, MINISYS_SIZE, f);
+    fclose(f);
+
     uc_engine* uc;
     uc_err err;
     
-    int r_edx = 0x7890;     // EDX register
-
-    printf("Emulate ARMv5 code\n");
-
     // Initialize emulator in X86-32bit mode
     err = uc_open(UC_ARCH_ARM, UC_MODE_ARM, &uc);
+    ERR_CHECK();
+
+    // insert MINIsys
+    err = uc_mem_map(uc, MINISYS_ADDR, MINISYS_SIZE, UC_PROT_READ | UC_PROT_EXEC);
+    ERR_CHECK();
+    err = uc_mem_write(uc, MINISYS_ADDR, msbuffer, sizeof(msbuffer));
     ERR_CHECK();
 
     // allocate some space for stack
@@ -79,24 +130,31 @@ int load_rom(const char* path) {
     ERR_CHECK();
 
     // intercept invalid memory events
-    uc_hook trace1;
+    uc_hook trace1, trace2;
     err = uc_hook_add(uc, &trace1, UC_HOOK_MEM_INVALID, hook_mem_invalid, NULL, 1, 0);
+    ERR_CHECK();
+    err = uc_hook_add(uc, &trace2, UC_HOOK_INTR, hook_intr, NULL, 1, 0);
     ERR_CHECK();
 
     // Set stack pointer
     int sp = STACK_TOP;
     uc_reg_write(uc, UC_ARM_REG_SP, &sp);
 
+    printf("Emulation start\n");
+
     // Execute binary init (R0=??, R1=0)
     int r1 = 0;
-    uc_reg_write(uc, UC_ARM_REG_R1, &r1);
+    /*uc_reg_write(uc, UC_ARM_REG_R1, &r1);
 
     err = uc_emu_start(uc, ENTRY_ADDRESS, 0x1010019C, 0, 0);
     ERR_CHECK();
 
     // Execute AppMain (R0=Dl)
 
-    err = uc_emu_start(uc, APPMAIN_ADDRESS, LOAD_ADDRESS + LOAD_SIZE, 0, 0);
+    err = uc_emu_start(uc, APPMAIN_ADDRESS, LOAD_ADDRESS + LOAD_SIZE, 0, 0);*/
+
+    // Jump to minisys
+    err = uc_emu_start(uc, MINISYS_ADDR, 0, 0, 0);
     if (err) {
         int pc;
         uc_reg_read(uc, UC_ARM_REG_PC, &pc);

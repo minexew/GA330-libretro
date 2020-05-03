@@ -4,7 +4,13 @@ project(GemeiEmu)
 set(UNICORN_ARCH "arm")
 add_subdirectory(dependencies/unicorn EXCLUDE_FROM_ALL)
 
-add_library(GemeiEmu SHARED src/main.c "src/ccdl.c")
+add_library(GemeiEmu SHARED
+        include/ccdl.h
+        include/svc_handlers.h
+        src/ccdl.c
+        src/libretro-main.c
+        src/svc_handlers.c
+        )
 
 target_include_directories(GemeiEmu PRIVATE include)
 
