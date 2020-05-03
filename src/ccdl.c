@@ -5,6 +5,9 @@
 
 #include <stdio.h>
 
+enum { RAM_START = 0x10000000 };
+enum { RAM_SIZE = 0x04000000 };
+
 enum { OFFSET = 0x52B0 };
 enum { LOAD_ADDRESS = 0x10100000 };
 enum { LOAD_SIZE = 0xDF1B4 };
@@ -29,16 +32,37 @@ static char const* get_string(uc_engine* uc, uint32_t addr) {
     return buf;
 }
 
+// ccpmp.bin
 int Svc_GetDLHandle(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
-    return arg0;
+    return LOAD_ADDRESS;
 }
 
+// ?
+int Svc_get_dl_handle(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
+    return LOAD_ADDRESS;
+}
+
+// ccpmp.bin
 int Svc_printf(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
     printf("%s", get_string(uc, arg0));
 }
 
-int Svc_TaskMediaFunStop(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
+void Svc_GemeiEmu_putc(uc_engine* uc, int c) {
+    putc(c, stdout);
 }
+
+#define LOG_STUB(name_) do { printf("STUB %s\n", (name_)); } while (0)
+
+#define STUB(name_) int name_(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {\
+    LOG_STUB(#name_);\
+    return 0;\
+}
+
+STUB(Svc_get_current_language)  // ()
+STUB(Svc_TaskMediaFunStop)      // ()
+STUB(Svc_cmGetSysModel)         // void(char* buffer_out)
+STUB(Svc_cmGetSysVersion)       // void(char* buffer_out)
+STUB(Svc_PMSetMode)             // ccpmp.bin
 
 static void hook_intr(uc_engine *uc, uint32_t intno, void *user_data) {
     int regs[4], pc;
@@ -52,9 +76,9 @@ static void hook_intr(uc_engine *uc, uint32_t intno, void *user_data) {
     uc_mem_read(uc, pc - 4, &num, 4);
     num &= 0xffff;
 
-    printf("hook_intr[%d](%08X, %08X, %08X, %08X, %08X)\n", num, pc, regs[0], regs[1], regs[2], regs[3]);
+    //printf("hook_intr[%d](%08X, %08X, %08X, %08X, %08X)\n", num, pc, regs[0], regs[1], regs[2], regs[3]);
     uint32_t ret = svc_handler_table[num](uc, regs[0], regs[1], regs[2], regs[3]);
-    printf("    -> %08X\n", ret);
+    //printf("    -> %08X\n", ret);
     uc_reg_write(uc, UC_ARM_REG_R0, &ret);
 }
 
@@ -110,7 +134,7 @@ int load_rom(const char* path) {
     ERR_CHECK();
 
     // insert MINIsys
-    err = uc_mem_map(uc, MINISYS_ADDR, MINISYS_SIZE, UC_PROT_READ | UC_PROT_EXEC);
+    err = uc_mem_map(uc, MINISYS_ADDR, MINISYS_SIZE, UC_PROT_ALL);
     ERR_CHECK();
     err = uc_mem_write(uc, MINISYS_ADDR, msbuffer, sizeof(msbuffer));
     ERR_CHECK();
@@ -120,9 +144,7 @@ int load_rom(const char* path) {
     ERR_CHECK();
 
     // map memory for this emulation
-    int alloc_size = (ALLOC_SIZE + 0x3fff) & ~0x3fff;
-
-    err = uc_mem_map(uc, LOAD_ADDRESS, alloc_size, UC_PROT_ALL);
+    err = uc_mem_map(uc, RAM_START, RAM_SIZE, UC_PROT_ALL);
     ERR_CHECK();
 
     // write machine code to be emulated to memory

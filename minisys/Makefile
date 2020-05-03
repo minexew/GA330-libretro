@@ -9,12 +9,12 @@ SIZE=$(TOOLCHAIN)size
 BUILD=build
 
 ARCHFLAGS=-mcpu=arm926ej-s
-CFLAGS=-ffreestanding -Wall -ffunction-sections -fdata-sections -Os -nostdinc
-LDFLAGS=-nostartfiles -nostdlib -Wl,--section-start=.text=0x20000000
+CFLAGS=-ffreestanding -Wall -ffunction-sections -fdata-sections -Os
+LDFLAGS=-nostartfiles -Wl,--section-start=.text=0x20000000
 
 OUTPUT=minisys.bin
 ELF=minisys.elf
-OBJ_NAMES=init.o thunks.o
+OBJ_NAMES=init.o syscalls.o thunks.o
 OBJS=$(addprefix $(BUILD)/,$(OBJ_NAMES))
 
 $(shell mkdir -p $(BUILD))

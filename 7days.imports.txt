@@ -4,10 +4,10 @@ APHeapInit 10193448 f
 heap_init 10193450 f
 heap_get_info 10193458 f
 heap_get_block_size 10193460 f
-malloc 10193468 f
-calloc 10193470 f
-realloc 10193478 f
-free 10193480 f
+malloc 10193468 minisys
+calloc 10193470 minisys
+realloc 10193478 minisys
+free 10193480 minisys
 OSMalloc 10193488 f
 OSFree 10193490 f
 fsys_fopen 10193498 f
@@ -219,7 +219,7 @@ DVCCloseDevice 10193B00 f
 DVCReadDevice 10193B08 f
 DVCWriteDevice 10193B10 f
 DVCControlDevice 10193B18 f
-printf 10193B20 f
+printf 10193B20 minisys
 consoleEnable 10193B28 f
 consoleDisable 10193B30 f
 stricmp 10193B38 f
@@ -671,3 +671,5 @@ LCDFBMode 10194920 f
 SysLcdClear 10194928 f
 TaskMediaFunStop 0 f
 cmGetSysModel 0 f
+cmGetSysVersion 0 f
+GemeiEmu_putc 0 emu

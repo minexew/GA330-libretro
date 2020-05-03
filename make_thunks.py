@@ -12,17 +12,24 @@ with open(IN, "rt") as f, open(MINISYS_C_OUT, "wt") as mcf, open(MINISYS_H_OUT, 
 
 """)
 
+    mhf.write("""/* GENERATED FILE, DO NOT EDIT */
+#include "thunksdef.h"
+
+""")
+
     i = 0
     all_ = []
     for line in f:
-        name, addr, _ = line.strip().split()
-        all_.append((i, name, int(addr, 16)))
+        name, addr, type = line.strip().split()
+        all_.append((i, name, int(addr, 16), type))
 
-        proto = f"int {name}(int arg1, int arg2, int arg3, int arg4);"
-        mhf.write(proto + "\n");
+        # thunked, stubbed
+        if type in {"f", "emu"}:
+            # generate thunk for minisys
+            proto = f"int {name}(int arg1, int arg2, int arg3, int arg4);"
+            mhf.write(proto + "\n");
 
-        # generate thunk for minisys
-        thunk = f"""
+            thunk = f"""
 __attribute__((naked)) __attribute__((weak)) int {name}(int arg1, int arg2, int arg3, int arg4) {{
     __asm(
         "svc {i} \\r\\n"
@@ -30,30 +37,34 @@ __attribute__((naked)) __attribute__((weak)) int {name}(int arg1, int arg2, int 
         );
 }}
 """
-        mcf.write(thunk)
+            mcf.write(thunk)
 
-        # generate native handler
-        thunk = f"""
+        if type in {"f"}:
+            # generate native handler
+            thunk = f"""
 __attribute__((weak)) int Svc_{name}(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {{
     printf("THUNK {name} (%08X, %08X, %08X, %08X)\\n", arg0, arg1, arg2, arg3);
     abort();
 }}
 """
-        nf.write(thunk)
+            nf.write(thunk)
 
         i += 1
 
     # generate native handler table
 
     nf.write("SvcHandler svc_handler_table[] = {\n")
-    for i, name, addr in all_:
-        nf.write(f"    &Svc_{name},\n")
+    for i, name, addr, type in all_:
+        if type in {"f", "emu"}:
+            nf.write(f"    &Svc_{name},\n")
+        else:
+            nf.write(f"    NULL,\n")
     nf.write("};\n")
 
     mhf.write("void patch_executable(void);\n")
 
     mcf.write("void patch_executable(void) {\n")
-    for i, name, addr in all_:
+    for i, name, addr, type in all_:
         if not addr: continue   # dynamic load only
 
         mcf.write(f"""    // {name}
@@ -64,10 +75,10 @@ __attribute__((weak)) int Svc_{name}(uc_engine* uc, int arg0, int arg1, int arg2
 """)
     mcf.write("}\n")
 
-    mhf.write("typedef struct { const char* name; int (*addr)(int,  int,  int,  int); } OsFunction;\n")
+    mhf.write("\n")
     mhf.write("extern OsFunction os_function_table[];\n")
     mcf.write("OsFunction os_function_table[] = {\n")
-    for i, name, addr in all_:
+    for i, name, addr, type in all_:
         mcf.write(f"""    {{"{name}", &{name}}},\n""")
     mcf.write("    {0, 0},\n")
     mcf.write("};\n")
