@@ -42,7 +42,11 @@ add_custom_command(OUTPUT ${SVC_HANDLERS_C}
 add_library(libccos STATIC
         libccos/include/libccos/ccos_host.h
         libccos/include/libccos/dl.h
+        libccos/include/libccos/malloc.h
+        libccos/include/libccos/ucos_ii.h
         libccos/src/dl.c
+        libccos/src/malloc.c
+        libccos/src/ucos_ii.c
         )
 
 target_include_directories(libccos PUBLIC libccos/include)

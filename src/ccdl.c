@@ -31,6 +31,11 @@ static char const* get_string(uc_engine* uc, uint32_t addr) {
     return buf;
 }
 
+void Svc_GemeiEmu_fopen(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
+    printf("FOPEN(%s, %p)\n", get_string(uc, arg0), arg1);
+    uc_emu_stop(uc);
+}
+
 void Svc_GemeiEmu_panic(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
     printf("PANIC\n");
     uc_emu_stop(uc);
@@ -39,19 +44,6 @@ void Svc_GemeiEmu_panic(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
 void Svc_GemeiEmu_putc(uc_engine* uc, int c, int arg1, int arg2, int arg3) {
     putc(c, stdout);
 }
-
-#define LOG_STUB(name_) do { printf("STUB %s\n", (name_)); } while (0)
-
-#define STUB(name_) int name_(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {\
-    LOG_STUB(#name_);\
-    return 0;\
-}
-
-STUB(Svc_get_current_language)  // ()
-STUB(Svc_TaskMediaFunStop)      // ()
-STUB(Svc_cmGetSysModel)         // void(char* buffer_out)
-STUB(Svc_cmGetSysVersion)       // void(char* buffer_out)
-STUB(Svc_PMSetMode)
 
 static void hook_code(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
     printf("TRACE %08X\n", address);
@@ -145,6 +137,9 @@ int load_rom(const char* path) {
     err = uc_mem_write(uc, APP_LOAD_ADDRESS, buffer, app_size);
     ERR_CHECK();
     free(buffer);
+
+    // memory-mapped I/O that we don't care about
+    err = uc_mem_map(uc, 0x04088000, 0x1000, UC_PROT_READ | UC_PROT_WRITE);
 
     // intercept invalid memory events
     uc_hook trace1, trace2;

@@ -65,6 +65,24 @@ void* get_dl_handle(void) {
     return &my_dl;
 }
 
+char* LCDGetFB(void) {
+    return 0x80000000;
+}
+
+int LCDGetHeight(void) {
+    enum {LCD_HEIGHT = 240};
+    return LCD_HEIGHT;
+}
+
+int LCDGetWidth(void) {
+    enum {LCD_WIDTH = 320};
+    return LCD_WIDTH;
+}
+
+void* fsys_fopen(const char* path, const char* mode) {
+    return 0xAAAAAAAA + GemeiEmu_fopen(path, mode);
+}
+
 // TODO: correct signature
 int __to_locale_ansi(void) {
     return "MINISYS.PLACEHOLDER";

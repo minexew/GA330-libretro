@@ -8,6 +8,7 @@ void ccos_panic_at(char const* message, char const* file, int line) __attribute_
 
 void ccos_diag_at(char const* message, char const* file, int line);
 #define ccos_diag(message_) do { ccos_diag_at((message_), __FILE__, __LINE__); } while (0);
+#define ccos_trace_stub(func_) do { ccos_diag_at("STUB " #func_, __FILE__, __LINE__); } while (0);
 
 ccos_proc_t ccos_get_builtin_proc(char const* name);
 

@@ -14,7 +14,7 @@ LDFLAGS=-nostartfiles -Wl,--section-start=.text=0x20000000
 
 OUTPUT=minisys.bin
 ELF=minisys.elf
-OBJ_NAMES=minisys.o syscalls.o thunks.o dl.o
+OBJ_NAMES=minisys.o syscalls.o thunks.o dl.o malloc.o ucos_ii.o
 OBJS=$(addprefix $(BUILD)/,$(OBJ_NAMES))
 
 $(shell mkdir -p $(BUILD))
