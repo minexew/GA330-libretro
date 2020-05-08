@@ -1,8 +1,14 @@
+#!/usr/bin/env python3
+# CSV format: name, address (ignored), type of thunk, where defined originally
+
+import csv
 import sys
 
 IN, MINISYS_C_OUT, MINISYS_H_OUT, NATIVE_OUT = sys.argv[1:]
 
 with open(IN, "rt") as f, open(MINISYS_C_OUT, "wt") as mcf, open(MINISYS_H_OUT, "wt") as mhf, open(NATIVE_OUT, "wt") as nf:
+    reader = csv.reader(f)
+
     nf.write("""/* GENERATED FILE, DO NOT EDIT */
 #include "svc_handlers.h"
 
@@ -19,18 +25,18 @@ with open(IN, "rt") as f, open(MINISYS_C_OUT, "wt") as mcf, open(MINISYS_H_OUT, 
 
     i = 0
     all_ = []
-    for line in f:
-        name, addr, type = line.strip().split()
+    for name, addr, type, origin in reader:
         all_.append((i, name, int(addr, 16), type))
 
-        # thunked, stubbed
+        if type in {"f"}:
+            proto = f"int {name}(int arg1, int arg2, int arg3, int arg4);"
+            mhf.write(proto + "\n")
+
         if type in {"f", "emu"}:
             # generate thunk for minisys
-            proto = f"int {name}(int arg1, int arg2, int arg3, int arg4);"
-            mhf.write(proto + "\n");
 
             thunk = f"""
-__attribute__((naked)) __attribute__((weak)) int {name}(int arg1, int arg2, int arg3, int arg4) {{
+__attribute__((naked)) int {name}(int arg1, int arg2, int arg3, int arg4) {{
     __asm(
         "svc {i} \\r\\n"
         "bx lr \\r\\n"
@@ -79,6 +85,6 @@ __attribute__((weak)) int Svc_{name}(uc_engine* uc, int arg0, int arg1, int arg2
     mhf.write("extern OsFunction os_function_table[];\n")
     mcf.write("OsFunction os_function_table[] = {\n")
     for i, name, addr, type in all_:
-        mcf.write(f"""    {{"{name}", &{name}}},\n""")
+        mcf.write(f"""    {{"{name}", (int (*)(int,  int,  int,  int)) &{name}}},\n""")
     mcf.write("    {0, 0},\n")
     mcf.write("};\n")

@@ -8,16 +8,15 @@
 enum { RAM_START = 0x10000000 };
 enum { RAM_SIZE = 0x04000000 };
 
-enum { OFFSET = 0x52B0 };
-enum { LOAD_ADDRESS = 0x10100000 };
-enum { LOAD_SIZE = 0xDF1B4 };
-enum { ALLOC_SIZE = 0xE9AE0 };
-
 enum { STACK_BOTTOM = 0x1FF00000 };
 enum { STACK_TOP =    0x20000000 };
 
 enum { MINISYS_ADDR = 0x20000000 };
 enum { MINISYS_SIZE = 0x40000 };
+
+// only the file is loaded here -- CCDL parsing is handled by miniSYS
+enum { APP_LOAD_ADDRESS = 0x30000000 };
+enum { APP_MAX_SIZE = 0x04000000 };
 
 static char const* get_string(uc_engine* uc, uint32_t addr) {
     static char buf[0x1000];
@@ -32,22 +31,12 @@ static char const* get_string(uc_engine* uc, uint32_t addr) {
     return buf;
 }
 
-// ccpmp.bin
-int Svc_GetDLHandle(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
-    return LOAD_ADDRESS;
+void Svc_GemeiEmu_panic(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
+    printf("PANIC\n");
+    uc_emu_stop(uc);
 }
 
-// ?
-int Svc_get_dl_handle(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
-    return LOAD_ADDRESS;
-}
-
-// ccpmp.bin
-int Svc_printf(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
-    printf("%s", get_string(uc, arg0));
-}
-
-void Svc_GemeiEmu_putc(uc_engine* uc, int c) {
+void Svc_GemeiEmu_putc(uc_engine* uc, int c, int arg1, int arg2, int arg3) {
     putc(c, stdout);
 }
 
@@ -62,7 +51,11 @@ STUB(Svc_get_current_language)  // ()
 STUB(Svc_TaskMediaFunStop)      // ()
 STUB(Svc_cmGetSysModel)         // void(char* buffer_out)
 STUB(Svc_cmGetSysVersion)       // void(char* buffer_out)
-STUB(Svc_PMSetMode)             // ccpmp.bin
+STUB(Svc_PMSetMode)
+
+static void hook_code(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
+    printf("TRACE %08X\n", address);
+}
 
 static void hook_intr(uc_engine *uc, uint32_t intno, void *user_data) {
     int regs[4], pc;
@@ -116,9 +109,8 @@ static bool hook_mem_invalid(uc_engine* uc, uc_mem_type type,
 int load_rom(const char* path) {
     FILE* f = fopen(path, "rb");
 
-    fseek(f, OFFSET, SEEK_SET);
-    uint8_t buffer[LOAD_SIZE];
-    fread(buffer, 1, LOAD_SIZE, f);
+    uint8_t* buffer = (uint8_t*) malloc(APP_MAX_SIZE);
+    size_t app_size = fread(buffer, 1, APP_MAX_SIZE, f);
     fclose(f);
 
     f = fopen(getenv("MINISYS_BIN"), "rb");
@@ -143,13 +135,16 @@ int load_rom(const char* path) {
     err = uc_mem_map(uc, STACK_BOTTOM, STACK_TOP - STACK_BOTTOM, UC_PROT_READ | UC_PROT_WRITE);
     ERR_CHECK();
 
-    // map memory for this emulation
+    // map RAM
     err = uc_mem_map(uc, RAM_START, RAM_SIZE, UC_PROT_ALL);
     ERR_CHECK();
 
-    // write machine code to be emulated to memory
-    err = uc_mem_write(uc, LOAD_ADDRESS, buffer, sizeof(buffer));
+    // map application
+    err = uc_mem_map(uc, APP_LOAD_ADDRESS, APP_MAX_SIZE, UC_PROT_ALL);
     ERR_CHECK();
+    err = uc_mem_write(uc, APP_LOAD_ADDRESS, buffer, app_size);
+    ERR_CHECK();
+    free(buffer);
 
     // intercept invalid memory events
     uc_hook trace1, trace2;
@@ -157,6 +152,9 @@ int load_rom(const char* path) {
     ERR_CHECK();
     err = uc_hook_add(uc, &trace2, UC_HOOK_INTR, hook_intr, NULL, 1, 0);
     ERR_CHECK();
+    //uc_hook trace3;
+    //err = uc_hook_add(uc, &trace3, UC_HOOK_CODE, hook_code, NULL, 1, 0);
+    //ERR_CHECK();
 
     // Set stack pointer
     int sp = STACK_TOP;
@@ -164,18 +162,14 @@ int load_rom(const char* path) {
 
     printf("Emulation start\n");
 
-    // Execute binary init (R0=??, R1=0)
-    int r1 = 0;
-    /*uc_reg_write(uc, UC_ARM_REG_R1, &r1);
-
-    err = uc_emu_start(uc, ENTRY_ADDRESS, 0x1010019C, 0, 0);
-    ERR_CHECK();
-
-    // Execute AppMain (R0=Dl)
-
-    err = uc_emu_start(uc, APPMAIN_ADDRESS, LOAD_ADDRESS + LOAD_SIZE, 0, 0);*/
-
     // Jump to minisys
+    // void _start(uint8_t const* file_bytes, size_t file_size)
+    uint32_t r0 = APP_LOAD_ADDRESS;
+    uint32_t r1 = app_size;
+
+    uc_reg_write(uc, UC_ARM_REG_R0, &r0);
+    uc_reg_write(uc, UC_ARM_REG_R1, &r1);
+
     err = uc_emu_start(uc, MINISYS_ADDR, 0, 0, 0);
     if (err) {
         int pc;

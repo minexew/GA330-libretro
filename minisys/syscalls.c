@@ -11,8 +11,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-#include "thunks.h"
-
 //#undef errno
 //extern int errno;
 
