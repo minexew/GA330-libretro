@@ -6,14 +6,16 @@ add_subdirectory(dependencies/unicorn EXCLUDE_FROM_ALL)
 
 # GA330 core
 
-set(SVC_HANDLERS_C ${CMAKE_CURRENT_BINARY_DIR}/svc_handlers.c)
+set(SVC_HANDLERS_CPP ${CMAKE_CURRENT_BINARY_DIR}/svc_handlers.cpp)
 
 add_library(GemeiEmu SHARED
-        include/ccdl.h
-        include/svc_handlers.h
-        src/ccdl.c
-        src/libretro-main.c
-        ${SVC_HANDLERS_C}
+        src/ccdl.cpp
+        src/ccdl.hpp
+        src/filesystem.cpp
+        src/filesystem.hpp
+        src/libretro-main.cpp
+        src/svc_handlers.hpp
+        ${SVC_HANDLERS_CPP}
         )
 
 target_include_directories(GemeiEmu PRIVATE include)
@@ -29,12 +31,12 @@ target_link_libraries(GemeiEmu PRIVATE unicorn)
 
 set(CSV ${CMAKE_CURRENT_LIST_DIR}/api.csv)
 
-add_custom_command(OUTPUT ${SVC_HANDLERS_C}
+add_custom_command(OUTPUT ${SVC_HANDLERS_CPP}
         COMMAND ${CMAKE_CURRENT_LIST_DIR}/make-thunks.py
         ${CSV}
         ${CMAKE_CURRENT_LIST_DIR}/minisys/thunks.c      # FIXME
         ${CMAKE_CURRENT_LIST_DIR}/minisys/thunks.h      # FIXME
-        ${SVC_HANDLERS_C}
+        ${SVC_HANDLERS_CPP}
         DEPENDS ${CSV})
 
 # libccos: currently not used in native code, included for documentation, CI, and IDEs

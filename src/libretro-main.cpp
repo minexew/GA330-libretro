@@ -5,7 +5,7 @@
 #include <string.h>
 #include <math.h>
 
-#include "ccdl.h"
+#include "ccdl.hpp"
 #include "libretro.h"
 
 static uint32_t *frame_buf;
@@ -23,7 +23,7 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...)
 
 void retro_init(void)
 {
-   frame_buf = calloc(320 * 240, sizeof(uint32_t));
+   frame_buf = (uint32_t*) calloc(320 * 240, sizeof(uint32_t));
 }
 
 void retro_deinit(void)
@@ -225,7 +225,7 @@ bool retro_serialize(void *data_, size_t size)
    if (size < 2)
       return false;
 
-   uint8_t *data = data_;
+   uint8_t *data = (uint8_t *) data_;
    data[0] = x_coord;
    data[1] = y_coord;
    return true;
@@ -236,7 +236,7 @@ bool retro_unserialize(const void *data_, size_t size)
    if (size < 2)
       return false;
 
-   const uint8_t *data = data_;
+   const uint8_t *data = (const uint8_t *) data_;
    x_coord = data[0] & 31;
    y_coord = data[1] & 31;
    return true;

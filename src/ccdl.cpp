@@ -1,5 +1,5 @@
-#include "ccdl.h"
-#include "svc_handlers.h"
+#include "ccdl.hpp"
+#include "svc_handlers.hpp"
 
 #include <unicorn/unicorn.h>
 
@@ -76,19 +76,19 @@ static bool hook_mem_invalid(uc_engine* uc, uc_mem_type type,
         printf("not ok - UC_HOOK_MEM_INVALID type: %d at 0x%" PRIx64 "\n", type, addr);
         return false;
     case UC_MEM_READ_UNMAPPED:
-        printf("not ok - Read from invalid memory at 0x%"PRIx64 ", data size = %u\n", addr, size);
+        printf("not ok - Read from invalid memory at 0x%" PRIx64 ", data size = %u\n", addr, size);
         return false;
     case UC_MEM_WRITE_UNMAPPED:
-        printf("not ok - Write to invalid memory at 0x%"PRIx64 ", data size = %u, data value = 0x%"PRIx64 "\n", addr, size, value);
+        printf("not ok - Write to invalid memory at 0x%" PRIx64 ", data size = %u, data value = 0x%" PRIx64 "\n", addr, size, value);
         return false;
     case UC_MEM_FETCH_PROT:
-        printf("not ok - Fetch from non-executable memory at 0x%"PRIx64 "\n", addr);
+        printf("not ok - Fetch from non-executable memory at 0x%" PRIx64 "\n", addr);
         return false;
     case UC_MEM_WRITE_PROT:
-        printf("not ok - Write to non-writeable memory at 0x%"PRIx64 ", data size = %u, data value = 0x%"PRIx64 "\n", addr, size, value);
+        printf("not ok - Write to non-writeable memory at 0x%" PRIx64 ", data size = %u, data value = 0x%" PRIx64 "\n", addr, size, value);
         return false;
     case UC_MEM_READ_PROT:
-        printf("not ok - Read from non-readable memory at 0x%"PRIx64 ", data size = %u\n", addr, size);
+        printf("not ok - Read from non-readable memory at 0x%" PRIx64 ", data size = %u\n", addr, size);
         return false;
     }
 }
@@ -143,9 +143,9 @@ int load_rom(const char* path) {
 
     // intercept invalid memory events
     uc_hook trace1, trace2;
-    err = uc_hook_add(uc, &trace1, UC_HOOK_MEM_INVALID, hook_mem_invalid, NULL, 1, 0);
+    err = uc_hook_add(uc, &trace1, UC_HOOK_MEM_INVALID, (void*) hook_mem_invalid, NULL, 1, 0);
     ERR_CHECK();
-    err = uc_hook_add(uc, &trace2, UC_HOOK_INTR, hook_intr, NULL, 1, 0);
+    err = uc_hook_add(uc, &trace2, UC_HOOK_INTR, (void*) hook_intr, NULL, 1, 0);
     ERR_CHECK();
     //uc_hook trace3;
     //err = uc_hook_add(uc, &trace3, UC_HOOK_CODE, hook_code, NULL, 1, 0);
@@ -183,4 +183,5 @@ int load_rom(const char* path) {
     printf(">>> R1 = 0x%x\n", r1);
 
     uc_close(uc);
+    return 0;
 }
