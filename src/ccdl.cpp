@@ -5,9 +5,10 @@
 #include <unicorn/unicorn.h>
 
 #include <stdio.h>
-#include <string>
 
-static Filesystem fs;
+//#define TRACE_INSTRUCTIONS
+
+Filesystem fs;
 
 enum { RAM_START = 0x10000000 };
 enum { RAM_SIZE = 0x04000000 };
@@ -22,66 +23,20 @@ enum { MINISYS_SIZE = 0x40000 };
 enum { APP_LOAD_ADDRESS = 0x30000000 };
 enum { APP_MAX_SIZE = 0x04000000 };
 
-//static char const* get_string(uc_engine* uc, uint32_t addr) {
-//    static char buf[0x1000];
-//
-//    for (int i = 0;; i++) {
-//        uc_mem_read(uc, addr + i, &buf[i], 1);
-//        if (!buf[i]) {
-//            break;
-//        }
-//    }
-//
-//    return buf;
-//}
-
-static char const* get_string(uc_engine* uc, uint32_t addr) {
-    static char buf[0x1000];
-
-    for (int i = 0;; i++) {
-        uc_mem_read(uc, addr + i, &buf[i], 1);
-        if (!buf[i]) {
-            break;
-        }
-    }
-
-    return buf;
-}
-
-void Svc_GemeiEmu_fopen(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
-    printf("FOPEN(%s, %p)\n", get_string(uc, arg0), arg1);
-    uc_emu_stop(uc);
-}
-
-void Svc_GemeiEmu_panic(uc_engine* uc, int arg0, int arg1, int arg2, int arg3) {
-    printf("PANIC\n");
-    uc_emu_stop(uc);
-}
-
-void Svc_GemeiEmu_putc(uc_engine* uc, int c, int arg1, int arg2, int arg3) {
-    putc(c, stdout);
-}
-
 static void hook_code(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
     printf("TRACE %08X\n", address);
 }
 
 static void hook_intr(uc_engine *uc, uint32_t intno, void *user_data) {
-    int regs[4], pc;
-    uc_reg_read(uc, UC_ARM_REG_R0, &regs[0]);
-    uc_reg_read(uc, UC_ARM_REG_R1, &regs[1]);
-    uc_reg_read(uc, UC_ARM_REG_R2, &regs[2]);
-    uc_reg_read(uc, UC_ARM_REG_R3, &regs[3]);
+    uint32_t pc;
     uc_reg_read(uc, UC_ARM_REG_PC, &pc);
 
     uint32_t num = 0xcccccccc;
     uc_mem_read(uc, pc - 4, &num, 4);
     num &= 0xffff;
 
-    //printf("hook_intr[%d](%08X, %08X, %08X, %08X, %08X)\n", num, pc, regs[0], regs[1], regs[2], regs[3]);
-    uint32_t ret = svc_handler_table[num](uc, regs[0], regs[1], regs[2], regs[3]);
-    //printf("    -> %08X\n", ret);
-    uc_reg_write(uc, UC_ARM_REG_R0, &ret);
+    //printf("hook_intr[%d, pc=%08X]\n", num, pc);
+    svc_handler_table[num](uc);
 }
 
 // callback for tracing invalid memory access (READ/WRITE/EXEC)
@@ -164,9 +119,11 @@ int load_rom(const char* path) {
     ERR_CHECK();
     err = uc_hook_add(uc, &trace2, UC_HOOK_INTR, (void*) hook_intr, NULL, 1, 0);
     ERR_CHECK();
-    //uc_hook trace3;
-    //err = uc_hook_add(uc, &trace3, UC_HOOK_CODE, hook_code, NULL, 1, 0);
-    //ERR_CHECK();
+#ifdef TRACE_INSTRUCTIONS
+    uc_hook code_hook;
+    err = uc_hook_add(uc, &code_hook, UC_HOOK_CODE, (void*) hook_code, NULL, 1, 0);
+    ERR_CHECK();
+#endif
 
     // Set stack pointer
     int sp = STACK_TOP;

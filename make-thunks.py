@@ -28,7 +28,7 @@ with open(IN, "rt") as f, open(MINISYS_C_OUT, "wt") as mcf, open(MINISYS_H_OUT, 
     name_map = {}
 
     nf.write("""/* GENERATED FILE, DO NOT EDIT */
-#include "svc_handlers.h"
+#include "svc_handlers.hpp"
 
 """)
     mcf.write("""/* GENERATED FILE, DO NOT EDIT */
@@ -43,9 +43,9 @@ with open(IN, "rt") as f, open(MINISYS_C_OUT, "wt") as mcf, open(MINISYS_H_OUT, 
 
     next_svc = 0
     all_ = []
-    for name, type, origin in reader:
+    for name, type, origin, prototype in reader:
         type = Type[type]
-        decl_in_minisys = type != Type.MINISYS
+        decl_in_minisys = type not in {Type.EMU, Type.MINISYS}  # EMU and MINISYS provide concrete prototypes; otherwise use default generic
         stub_in_minisys = type in {Type.ABORT, Type.NOOP, Type.STUB, Type.STUB_DUMMY_ALLOC}
 
         if stub_in_minisys:
@@ -75,8 +75,9 @@ with open(IN, "rt") as f, open(MINISYS_C_OUT, "wt") as mcf, open(MINISYS_H_OUT, 
 """
             mcf.write(thunk)
         if type in {Type.EMU}:
+            assert prototype
             thunk = f"""
-__attribute__((naked)) {minisys_proto} {{
+__attribute__((naked)) {prototype} {{
     __asm(
         "svc {next_svc} \\r\\n"
         "bx lr \\r\\n"
@@ -111,7 +112,7 @@ __attribute__((naked)) {minisys_proto} {{
         if type in {Type.EMU}:
             # generate native prototype
             proto = f"""
-int Svc_{name}(uc_engine* uc, int arg0, int arg1, int arg2, int arg3);
+void Svc_{name}(uc_engine* uc);
 """
             nf.write(proto)
 #         elif type in {Type.stub}:

@@ -4,32 +4,71 @@ project(GemeiEmu)
 set(UNICORN_ARCH "arm")
 add_subdirectory(dependencies/unicorn EXCLUDE_FROM_ALL)
 
-# GA330 core
+#
+# Common emulation code
+#
 
 set(SVC_HANDLERS_CPP ${CMAKE_CURRENT_BINARY_DIR}/svc_handlers.cpp)
 
-add_library(GemeiEmu SHARED
+set(GA330_SRC
+        src/api.cpp
         src/ccdl.cpp
         src/ccdl.hpp
         src/filesystem.cpp
         src/filesystem.hpp
-        src/libretro-main.cpp
         src/svc_handlers.hpp
         ${SVC_HANDLERS_CPP}
         )
 
-target_include_directories(GemeiEmu PRIVATE include)
+#
+# GA330 libretro core
+#
+
+add_library(GA330 SHARED
+        ${GA330_SRC}
+        src/libretro-main.cpp
+        )
+
+set_property(TARGET GA330 PROPERTY CXX_STANDARD 17)
+target_include_directories(GA330 PRIVATE include src)
 
 get_target_property(UNICORN_INCLUDES unicorn INCLUDE_DIRECTORIES)
 foreach(dir ${UNICORN_INCLUDES})
-    target_include_directories(GemeiEmu PRIVATE ${dir})
+    target_include_directories(GA330 PRIVATE ${dir})
 endforeach()
 
-target_link_libraries(GemeiEmu PRIVATE unicorn)
+target_link_libraries(GA330 PRIVATE unicorn)
 
-set_property(TARGET GemeiEmu PROPERTY CXX_STANDARD 17)
+#
+# GA330 standalone headless emulator
+#
 
+add_executable(GA330emu
+        ${GA330_SRC}
+        src/standalone-main.cpp
+        )
+
+set_property(TARGET GA330emu PROPERTY CXX_STANDARD 17)
+target_include_directories(GA330emu PRIVATE include src)
+
+get_target_property(UNICORN_INCLUDES unicorn INCLUDE_DIRECTORIES)
+foreach(dir ${UNICORN_INCLUDES})
+    target_include_directories(GA330emu PRIVATE ${dir})
+endforeach()
+
+target_link_libraries(GA330emu PRIVATE unicorn)
+
+if(MSVC)
+else()
+    target_link_libraries(GA330emu PRIVATE
+            pthread
+            )
+endif()
+
+
+#
 # SVC thunks & handlers
+#
 
 set(CSV ${CMAKE_CURRENT_LIST_DIR}/api.csv)
 
@@ -41,7 +80,9 @@ add_custom_command(OUTPUT ${SVC_HANDLERS_CPP}
         ${SVC_HANDLERS_CPP}
         DEPENDS ${CSV})
 
+#
 # libccos: currently not used in native code, included for documentation, CI, and IDEs
+#
 
 add_library(libccos STATIC
         libccos/include/libccos/ccos_host.h

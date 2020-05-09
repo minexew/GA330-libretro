@@ -10,4 +10,6 @@ int Filesystem::open_file(std::filesystem::path const& path) {
     for (auto p : path) {
         std::cout << p << "\n";
     }
+
+    return 1;
 }

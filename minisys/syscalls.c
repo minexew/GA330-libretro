@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+#include "emu.h"
+
 //#undef errno
 //extern int errno;
 
@@ -18,8 +20,7 @@ extern int __io_getchar(void) __attribute__((weak));
 
 //#define MAX_STACK_SIZE 0x2000
 
-enum { RAM_START = 0x10000000 };
-enum { RAM_END = 0x04000000 };
+enum { RAM_START = 0x11000000 };    // TODO: pass to _start at runtime
 
 void* _sbrk(int incr) {
     static char* heap_end;
@@ -68,7 +69,7 @@ int _write(int file, char* ptr, int len) {
     int DataIdx;
 
     for (DataIdx = 0; DataIdx < len; DataIdx++) {
-        GemeiEmu_putc( *ptr++, 0, 0, 0 );
+        GemeiEmu_putc( *ptr++ );
     }
     return len;
 }

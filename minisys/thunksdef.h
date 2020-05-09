@@ -12,11 +12,18 @@
 #include <libccos/malloc.h>
 #include <libccos/ucos_ii.h>
 
+#include "emu.h"
+
 void* fsys_fopen(const char* path, const char* mode);
+void* fsys_fopenW(const char16_t* path, const char* mode);
+int fsys_fread(int arg1, int arg2, int arg3, int arg4);
+//void fsys_fclose(void* f);
+
 void* GetDLHandle(void);
 void* get_dl_handle(void);
 int __to_locale_ansi(void);
 
+char* lcd_get_frame(void);
 char* LCDGetFB(void);
 int LCDGetHeight(void);
 int LCDGetWidth(void);
