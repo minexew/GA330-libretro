@@ -1,9 +1,13 @@
 #include "ccdl.hpp"
+#include "filesystem.hpp"
 #include "svc_handlers.hpp"
 
 #include <unicorn/unicorn.h>
 
 #include <stdio.h>
+#include <string>
+
+static Filesystem fs;
 
 enum { RAM_START = 0x10000000 };
 enum { RAM_SIZE = 0x04000000 };
@@ -17,6 +21,19 @@ enum { MINISYS_SIZE = 0x40000 };
 // only the file is loaded here -- CCDL parsing is handled by miniSYS
 enum { APP_LOAD_ADDRESS = 0x30000000 };
 enum { APP_MAX_SIZE = 0x04000000 };
+
+//static char const* get_string(uc_engine* uc, uint32_t addr) {
+//    static char buf[0x1000];
+//
+//    for (int i = 0;; i++) {
+//        uc_mem_read(uc, addr + i, &buf[i], 1);
+//        if (!buf[i]) {
+//            break;
+//        }
+//    }
+//
+//    return buf;
+//}
 
 static char const* get_string(uc_engine* uc, uint32_t addr) {
     static char buf[0x1000];

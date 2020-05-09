@@ -27,6 +27,8 @@ endforeach()
 
 target_link_libraries(GemeiEmu PRIVATE unicorn)
 
+set_property(TARGET GemeiEmu PROPERTY CXX_STANDARD 17)
+
 # SVC thunks & handlers
 
 set(CSV ${CMAKE_CURRENT_LIST_DIR}/api.csv)
