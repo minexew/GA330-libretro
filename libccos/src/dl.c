@@ -153,3 +153,8 @@ void* dl_get_proc(DL_t* dl, char const* name) {
 
     return ccos_get_builtin_proc(name);
 }
+
+void* dl_res_open(void* dl, int unk_4, const char* name) {
+    printf("dl_res_open(%p, %d, %s)\n", dl, unk_4, name);
+    ccos_panic("unimplemented shit");
+}

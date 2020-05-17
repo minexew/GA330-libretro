@@ -19,6 +19,9 @@ enum { STACK_TOP =    0x20000000 };
 enum { MINISYS_ADDR = 0x20000000 };
 enum { MINISYS_SIZE = 0x40000 };
 
+enum { FRAMEBUF_ADDR = 0x80000000 };
+enum { FRAMEBUF_SIZE = (320 * 240 * 2 + 4095) & ~4095 };
+
 // only the file is loaded here -- CCDL parsing is handled by miniSYS
 enum { APP_LOAD_ADDRESS = 0x30000000 };
 enum { APP_MAX_SIZE = 0x04000000 };
@@ -101,6 +104,10 @@ int load_rom(const char* path) {
 
     // map RAM
     err = uc_mem_map(uc, RAM_START, RAM_SIZE, UC_PROT_ALL);
+    ERR_CHECK();
+
+    // map framebuf
+    err = uc_mem_map(uc, FRAMEBUF_ADDR, FRAMEBUF_SIZE, UC_PROT_WRITE);
     ERR_CHECK();
 
     // map application

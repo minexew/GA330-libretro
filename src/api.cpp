@@ -82,7 +82,10 @@ void Svc_GemeiEmu_fopenW(uc_engine* uc) {
 }
 
 void Svc_GemeiEmu_panic(uc_engine* uc) {
-    printf("PANIC\n");
+    int pc;
+    uc_reg_read(uc, UC_ARM_REG_PC, &pc);
+    printf("PANIC AT PC = 0x%x\n", pc);
+
     uc_emu_stop(uc);
 }
 

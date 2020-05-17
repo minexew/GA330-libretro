@@ -77,6 +77,11 @@ char* LCDGetFB(void) {
     return 0x80000000;
 }
 
+int LCDGetFBFormat(void* unk_0, void* unk_4) {
+    ccos_trace_stub(LCDGetFBFormat);
+    return 0;
+}
+
 int LCDGetHeight(void) {
     enum {LCD_HEIGHT = 240};
     return LCD_HEIGHT;
@@ -101,6 +106,11 @@ void* fsys_fopenW(const char16_t* path, const char* mode) {
 
 int fsys_fread(int arg1, int arg2, int arg3, int arg4) {
     ccos_trace_stub(fsys_fread);
+    return 0;
+}
+
+int OSTimeGet(void) {
+    ccos_trace_stub(OSTimeGet);
     return 0;
 }
 
