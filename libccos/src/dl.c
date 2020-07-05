@@ -103,18 +103,16 @@ int ccdl_from_memory(DL_t* dl_out, uint8_t const* file_bytes, size_t file_size) 
     dl_out->file_bytes = file_bytes;
     dl_out->file_size = file_size;
 
+    memcpy(&dl_out->hdr, &hdr, sizeof(hdr));
+
     return 0;
 }
 
 void* dl_get_proc(DL_t* dl, char const* name) {
     TRACE(("dl_get_proc(%p, %s)\n", dl, name));
 
-    CCDL_header_t hdr;
-    memcpy(&hdr, dl->file_bytes, sizeof(hdr));
-    TRACE(("sign=%s version=%08X unk_8=%08X num_sections=%d\n", hdr.sign, hdr.version, hdr.unk_8, (int) hdr.num_sections));
-
     // look for exported function
-    for (size_t i = 0; i < hdr.num_sections; i++) {
+    for (size_t i = 0; i < dl->hdr.num_sections; i++) {
         CCDL_section_header_t shdr;
 
         memcpy(&shdr, dl->file_bytes + sizeof(CCDL_header_t) + i * sizeof(CCDL_section_header_t), sizeof(CCDL_section_header_t));
@@ -154,7 +152,65 @@ void* dl_get_proc(DL_t* dl, char const* name) {
     return ccos_get_builtin_proc(name);
 }
 
-void* dl_res_open(void* dl, int unk_4, const char* name) {
-    printf("dl_res_open(%p, %d, %s)\n", dl, unk_4, name);
-    ccos_panic("unimplemented shit");
+DL_res_t* dl_res_open(DL_t* dl, int unk_4, const char* name) {
+    TRACE(("dl_res_open(%p, %d, %s)\n", dl, unk_4, name));
+
+    // look for resource
+    for (size_t i = 0; i < dl->hdr.num_sections; i++) {
+        CCDL_section_header_t shdr;
+
+        memcpy(&shdr, dl->file_bytes + sizeof(CCDL_header_t) + i * sizeof(CCDL_section_header_t), sizeof(CCDL_section_header_t));
+
+        if (shdr.type != CCDL_SECTION_RESOURCES) {
+            continue;
+        }
+
+        uint8_t const* p = dl->file_bytes + shdr.offset;
+
+        uint32_t count;
+        memcpy(&count, p, sizeof(count));
+        p += sizeof(count);
+
+        for (uint32_t i = 0; i < count; i++) {
+            CCDL_ERPT_entry_t ent;
+            memcpy(&ent, p, sizeof(ent));
+            p += sizeof(ent);
+
+            //TRACE((" : '%s' @ %08X, %d bytes\n", ent.filename, ent.offset, ent.size));
+
+            if (strcmp(ent.filename, name) == 0) {
+                // XXX clearly provisional
+                DL_res_t* res = malloc(sizeof(DL_res_t));
+                res->current_file_offset = shdr.offset + ent.offset;
+                res->start_file_offset = shdr.offset + ent.offset;
+                res->dl = dl;
+                memcpy(&res->ent, &ent, sizeof(ent));
+                return res;
+            }
+        }
+
+        break;
+    }
+
+    return NULL;
+}
+
+size_t dl_res_get_size(DL_res_t* res) {
+    TRACE(("dl_res_get_size(%p) => %d\n", res, (int) res->ent.size));
+    return res->ent.size;
+}
+
+size_t dl_res_get_data(DL_res_t* res, void* buffer, int size, int count) {
+    TRACE(("dl_res_get_data(%p, %p, %d, %d)\n", res, buffer, size, count));
+
+    int num_to_read = size * count;
+
+    memcpy(buffer, res->dl->file_bytes + res->current_file_offset, num_to_read);
+    res->current_file_offset += num_to_read;
+
+    for (size_t i = 0; i < count; i++) {
+        ((char*) buffer)[i] ^= 0x40;
+    }
+
+    return num_to_read;
 }
