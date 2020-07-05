@@ -14,6 +14,8 @@ set(GA330_SRC
         src/api.cpp
         src/ccdl.cpp
         src/ccdl.hpp
+        src/debug.cpp
+        src/debug.hpp
         src/filesystem.cpp
         src/filesystem.hpp
         src/svc_handlers.hpp

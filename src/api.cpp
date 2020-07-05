@@ -1,3 +1,4 @@
+#include "debug.hpp"
 #include "filesystem.hpp"
 #include "svc_handlers.hpp"
 
@@ -85,6 +86,40 @@ void Svc_GemeiEmu_panic(uc_engine* uc) {
     int pc;
     uc_reg_read(uc, UC_ARM_REG_PC, &pc);
     printf("PANIC AT PC = 0x%x\n", pc);
+
+    int lr; uc_reg_read(uc, UC_ARM_REG_LR, &lr);
+    int sp; uc_reg_read(uc, UC_ARM_REG_SP, &sp);
+
+    printf("PC = %08X\tLR = %08X\tSP = %08X\n\nStack trace:\n", pc, lr, sp);
+
+    aarch32_walk_stack(pc, lr, sp, [uc](uint32_t address) -> std::optional<uint32_t> {
+        uint32_t val;
+        if (uc_mem_read(uc, address, &val, 4) == UC_ERR_OK) {
+            return val;
+        }
+        else {
+            return std::nullopt;
+        }
+    },
+    [uc](uint32_t address) -> bool {
+        // application
+        if (address >= 0x10000000 && address < 0x14000000) {
+            return true;
+        }
+        // minisys
+        if (address >= 0x20000000 && address < 0x20040000) {
+            return true;
+        }
+        return false;
+    },
+    [](uint32_t address) {
+        // To symbolize:
+        // - load symbols from text file (APP.sym + minisys.sym)
+        // - find nearest lower address
+        // - done
+        printf("%08Xh\n", address);
+        return true;
+    });
 
     uc_emu_stop(uc);
 }
