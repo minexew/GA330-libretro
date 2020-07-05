@@ -25,6 +25,7 @@ IN, MINISYS_C_OUT, MINISYS_H_OUT, NATIVE_OUT = sys.argv[1:]
 
 with open(IN, "rt") as f, open(MINISYS_C_OUT, "wt") as mcf, open(MINISYS_H_OUT, "wt") as mhf, open(NATIVE_OUT, "wt") as nf:
     reader = csv.reader(f)
+    next(reader)
     name_map = {}
 
     nf.write("""/* GENERATED FILE, DO NOT EDIT */

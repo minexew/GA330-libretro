@@ -1,3 +1,4 @@
+Function,Handler,Origin,Prototype
 __dcache_writeback_all,ABORT,,
 __icache_invalidate_all,ABORT,,
 __to_locale_ansi,MINISYS,,
