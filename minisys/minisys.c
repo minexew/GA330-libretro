@@ -102,13 +102,15 @@ int LCDGetWidth(void) {
 void* fsys_fopen(const char* path, const char* mode) {
     ccos_trace_stub(fsys_fopen);
     int fd = GemeiEmu_fopen(path, mode);
-    return malloc(4);
+    //return malloc(4);
+    return NULL;
 }
 
 void* fsys_fopenW(const char16_t* path, const char* mode) {
     ccos_trace_stub(fsys_fopenW);
     int fd = GemeiEmu_fopenW(path, mode);
-    return malloc(4);
+    //return malloc(4);
+    return NULL;
 }
 
 int fsys_fread(int arg1, int arg2, int arg3, int arg4) {
