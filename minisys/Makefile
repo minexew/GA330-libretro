@@ -10,7 +10,7 @@ BUILD=build
 
 ARCHFLAGS=-mcpu=arm926ej-s
 CFLAGS=-ffreestanding -Wall -ffunction-sections -fdata-sections -Os -I../libccos/include
-LDFLAGS=-nostartfiles -Wl,--section-start=.text=0x20000000
+LDFLAGS=-nostartfiles -Wl,-Tminisys.ld
 
 OUTPUT=minisys.bin
 ELF=minisys.elf

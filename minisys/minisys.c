@@ -7,15 +7,22 @@
 #include <stdio.h>
 #include <string.h>
 
-// Ensure that the first instruction of the binary is a jump to _start
-__asm(
-    "b _start \r\n"
-    "ldr pc, =0xAABBCCDD \r\n"
-);
+extern unsigned long _sidata;
+extern unsigned long _sdata;
+extern unsigned long _edata;
 
 static DL_t my_dl;
 
 void _start(uint8_t const* file_bytes, size_t file_size) {
+    // First of all, init .data section
+    uint32_t* src = &_sidata;
+    uint32_t* dst = &_sdata;
+
+    while (dst < &_edata) {
+        *(dst++) = *(src++);
+    }
+
+    // Now we can use libc normally
     printf("miniSYS _start(%p, %zd)\n", file_bytes, file_size);
 
     int rc = ccdl_from_memory(&my_dl, file_bytes, file_size);
