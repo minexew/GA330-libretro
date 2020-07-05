@@ -4,5 +4,6 @@
 #include <stdlib.h>
 
 void* OSMalloc(size_t size);
+void OSFree(void* ptr);
 
 #endif
