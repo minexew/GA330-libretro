@@ -1,5 +1,11 @@
 # GA330-libretro
 
+## Status
+
+7days boots into game !!!
+
+![7days-intro](_images/7days-intro.png) ![7days-game](_images/7days-game.png)
+
 ## Contained herein
 
 - GA330 libretro core
@@ -17,13 +23,13 @@ First, you will need:
 
 Then, to build everything:
 
-- compile GA330 core via CMake. this also generates thunks for miniSYS (bleh)
+- compile GA330 core via CMake. this step also generates thunks for miniSYS (bleh)
 - compile minisys (`make -C minisys`)
 - run/debug GA330 core via your libretro host
 
 ## Debugging ARM code
 
-Currently unsolved. Unicorn is based on QEMU, but QEMU GDB stuff is probably not usable there. So use `printf`.
+Currently unsolved. Unicorn is based on QEMU, but QEMU GDB stuff is probably not usable there. `printf` is your friend!
 
 ## Memory map
 
