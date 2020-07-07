@@ -35,7 +35,7 @@ void _start(uint8_t const* file_bytes, size_t file_size) {
     void* appmain_address = dl_get_proc(&my_dl, "AppMain");
 
     printf("minSYS: AppMain=%p\n", appmain_address);
-    ((int (*)(int)) appmain_address)(&my_dl);
+    ((int (*)(DL_t*)) appmain_address)(&my_dl);
 }
 
 ccos_proc_t ccos_get_builtin_proc(char const* name) {
@@ -76,12 +76,12 @@ void* get_dl_handle(void) {
 
 char* lcd_get_frame(void) {
     ccos_trace_stub(lcd_get_frame);
-    return 0x80000000;
+    return (char*) 0x80000000;
 }
 
 char* LCDGetFB(void) {
     ccos_trace_stub(LCDGetFB);
-    return 0x80000000;
+    return (char*) 0x80000000;
 }
 
 int LCDGetFBFormat(void* unk_0, void* unk_4) {
@@ -103,14 +103,14 @@ void* fsys_fopen(const char* path, const char* mode) {
     ccos_trace_stub(fsys_fopen);
     int fd = GemeiEmu_fopen(path, mode);
     //return malloc(4);
-    return NULL;
+    return NULL;    // FIXME
 }
 
 void* fsys_fopenW(const char16_t* path, const char* mode) {
     ccos_trace_stub(fsys_fopenW);
     int fd = GemeiEmu_fopenW(path, mode);
     //return malloc(4);
-    return NULL;
+    return NULL;    // FIXME
 }
 
 int fsys_fread(int arg1, int arg2, int arg3, int arg4) {
