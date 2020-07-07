@@ -4,7 +4,8 @@
 
 #include <unicorn/unicorn.h>
 
-#include <stdio.h>
+#include <cstdio>
+#include <cstring>
 
 //#define TRACE_INSTRUCTIONS
 
@@ -73,6 +74,9 @@ static bool hook_mem_invalid(uc_engine* uc, uc_mem_type type,
         return -1;\
     }
 
+static uc_engine* uc;
+static bool aborted = false;
+
 int load_rom(const char* path) {
     FILE* f = fopen(path, "rb");
 
@@ -85,7 +89,6 @@ int load_rom(const char* path) {
     fread(msbuffer, 1, MINISYS_SIZE, f);
     fclose(f);
 
-    uc_engine* uc;
     uc_err err;
     
     // Initialize emulator in X86-32bit mode
@@ -154,6 +157,7 @@ int load_rom(const char* path) {
 
         printf("Failed on uc_emu_start() with error returned %u: %s\n",
             err, uc_strerror(err));
+        aborted = false;
         return -1;
     }
 
@@ -163,6 +167,32 @@ int load_rom(const char* path) {
     uc_reg_read(uc, UC_ARM_REG_R1, &r1);
     printf(">>> R1 = 0x%x\n", r1);
 
-    uc_close(uc);
+    //uc_close(uc); TODO
     return 0;
+}
+
+void ccdl_run_frame() {
+    if (aborted) {
+        return;
+    }
+
+    uc_err err;
+
+    int pc;
+    uc_reg_read(uc, UC_ARM_REG_PC, &pc);
+
+    err = uc_emu_start(uc, pc, 0, 0, 0);
+    if (err) {
+        printf(">>> PC = 0x%x\n", pc);
+
+        printf("ccdl_run_frame: Failed on uc_emu_start() with error returned %u: %s\n",
+               err, uc_strerror(err));
+        aborted = true;
+        return;
+    }
+}
+
+// FIXME: use span<>
+void ccdl_get_framebuffer(uint16_t* frame_buf_out) {
+    uc_mem_read(uc, FRAMEBUF_ADDR, frame_buf_out, 320 * 240 * 2);
 }

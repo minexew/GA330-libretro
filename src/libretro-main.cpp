@@ -8,7 +8,7 @@
 #include "ccdl.hpp"
 #include "libretro.h"
 
-static uint32_t *frame_buf;
+static uint16_t *frame_buf;
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
 
@@ -23,7 +23,7 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...)
 
 void retro_init(void)
 {
-   frame_buf = (uint32_t*) calloc(320 * 240, sizeof(uint32_t));
+   frame_buf = (uint16_t*) calloc(320 * 240, sizeof(uint16_t));
 }
 
 void retro_deinit(void)
@@ -134,29 +134,54 @@ static void update_input(void)
    }
 }
 
-static void render_checkered(void)
-{
-   uint32_t *buf    = frame_buf;
-   unsigned stride  = 320;
-   uint32_t color_r = 0xff << 16;
-   uint32_t color_g = 0xff <<  8;
-   uint32_t *line   = buf;
+int get_keypad_state() {
+    int st = 0;
 
-   for (unsigned y = 0; y < 240; y++, line += stride)
-   {
-      unsigned index_y = ((y - y_coord) >> 4) & 1;
-      for (unsigned x = 0; x < 320; x++)
-      {
-         unsigned index_x = ((x - x_coord) >> 4) & 1;
-         line[x] = (index_y ^ index_x) ? color_r : color_g;
-      }
-   }
+    // 0x80000000 - A
+    // 0x40000000 - ??
+    // 0x20000000 - brings up map in-game; unclear which button
+    // 0x10000000 - left
+    // 0x08000000 - down
+    // 0x04000000 - ??
+    // 0x02000000 - ??
+    // 0x01000000 - ??
+    // 0x00800000 - ??
+    // 0x00400000 - ??
+    // 0x00200000 - ??
+    // 0x00100000 - up
+    // 0x00080000
+    // 0x00040000 - right
+    // 0x00020000
+    // 0x00010000
+    // 0x00008000 - B
 
-   for (unsigned y = mouse_rel_y - 5; y <= mouse_rel_y + 5; y++)
-      for (unsigned x = mouse_rel_x - 5; x <= mouse_rel_x + 5; x++)
-         buf[y * stride + x] = 0xff;
+    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A)) {
+        st |= 0x80000000;
+    }
+    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B)) {
+        st |= 0x00008000;
+    }
+    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP)) {
+        st |= 0x00100000;
+    }
+    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN)) {
+        st |= 0x08000000;
+    }
+    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT)) {
+        st |= 0x10000000;
+    }
+    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT)) {
+        st |= 0x00040000;
+    }
+    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R)) {
+    }
+    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L)) {
+    }
+    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START)) {
+        st |= 0x20000000;
+    }
 
-   video_cb(buf, 320, 240, stride << 2);
+    return st;
 }
 
 static void check_variables(void)
@@ -171,7 +196,11 @@ static void audio_callback(void)
 void retro_run(void)
 {
    update_input();
-   render_checkered();
+
+   ccdl_run_frame();
+   ccdl_get_framebuffer(frame_buf);
+   video_cb(frame_buf, 320, 240, 320 << 1);     // eugh
+
    audio_callback();
 
    bool updated = false;
@@ -181,10 +210,10 @@ void retro_run(void)
 
 bool retro_load_game(const struct retro_game_info *info)
 {
-   enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
+   enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
    if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
    {
-      log_cb(RETRO_LOG_INFO, "XRGB8888 is not supported.\n");
+      log_cb(RETRO_LOG_INFO, "RGB565 is not supported.\n");
       return false;
    }
 

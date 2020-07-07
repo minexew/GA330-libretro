@@ -4,6 +4,7 @@
 
 #include <sstream>
 #include <string>
+#include <thread>
 
 extern Filesystem fs;
 
@@ -82,6 +83,10 @@ void Svc_GemeiEmu_fopenW(uc_engine* uc) {
     uc_reg_write(uc, UC_ARM_REG_R0, &ret);
 }
 
+void Svc_GemeiEmu_newFrame(uc_engine* uc) {
+    uc_emu_stop(uc);
+}
+
 void Svc_GemeiEmu_panic(uc_engine* uc) {
     int pc;
     uc_reg_read(uc, UC_ARM_REG_PC, &pc);
@@ -130,4 +135,28 @@ void Svc_GemeiEmu_putc(uc_engine* uc) {
     char c = r0;
 
     putc(c, stdout);
+}
+
+int get_keypad_state();
+
+void Svc_GemeiEmu_getKeyPad(uc_engine* uc) {
+    uint32_t ret = get_keypad_state();
+
+    uc_reg_write(uc, UC_ARM_REG_R0, &ret);
+}
+
+void Svc_GemeiEmu_getTimeMs(uc_engine* uc) {
+    uint32_t ret = clock() * 1000 / CLOCKS_PER_SEC;
+
+    uc_reg_write(uc, UC_ARM_REG_R0, &ret);
+}
+
+void Svc_GemeiEmu_sleepMs(uc_engine* uc) {
+    uint32_t r0; uc_reg_read(uc, UC_ARM_REG_R0, &r0);
+    if (r0 > 100) {
+        printf("Svc_GemeiEmu_sleepMs(%d)\n", (int) r0);
+    }
+
+    std::chrono::milliseconds timespan(r0);
+    std::this_thread::sleep_for(timespan);
 }

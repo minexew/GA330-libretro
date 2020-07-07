@@ -31,6 +31,12 @@ int LCDGetHeight(void);
 int LCDGetWidth(void);
 int LCDGetFBFormat(void* unk_0, void* unk_4);
 
+int sys_judge_event(void* cb);
+void kbd_get_status(uint32_t* outputs);
+int rmt_get_status(void);
+
+void OSTimeDly(int ms);
+
 /**
  * @return time in milliseconds or something
  */

@@ -118,13 +118,32 @@ int fsys_fread(int arg1, int arg2, int arg3, int arg4) {
     return 0;
 }
 
+void OSTimeDly(int ms) {
+    GemeiEmu_sleepMs(ms);
+}
+
 int OSTimeGet(void) {
-    ccos_trace_stub(OSTimeGet);
-    return 0;
+    return GemeiEmu_getTimeMs();
 }
 
 // TODO: correct signature
 int __to_locale_ansi(void) {
     ccos_trace_stub(__to_locale_ansi);
     return "MINISYS.PLACEHOLDER";
+}
+
+int sys_judge_event(void* cb) {
+    GemeiEmu_newFrame();
+    return -1;
+}
+
+void kbd_get_status(uint32_t* outputs) {
+    // 3 output words: perhaps Pressed, Released, Held ?
+    outputs[0] = 0;
+    outputs[1] = 0;
+    outputs[2] = GemeiEmu_getKeyPad();
+}
+
+int rmt_get_status(void) {
+    return 0;
 }
