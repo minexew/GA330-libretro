@@ -32,7 +32,7 @@ add_library(GA330 SHARED
         )
 
 set_property(TARGET GA330 PROPERTY CXX_STANDARD 17)
-target_include_directories(GA330 PRIVATE include src)
+target_include_directories(GA330 PRIVATE include src dependencies/GSL/include)
 
 get_target_property(UNICORN_INCLUDES unicorn INCLUDE_DIRECTORIES)
 foreach(dir ${UNICORN_INCLUDES})
@@ -51,7 +51,7 @@ add_executable(GA330emu
         )
 
 set_property(TARGET GA330emu PROPERTY CXX_STANDARD 17)
-target_include_directories(GA330emu PRIVATE include src)
+target_include_directories(GA330emu PRIVATE include src dependencies/GSL/include)
 
 get_target_property(UNICORN_INCLUDES unicorn INCLUDE_DIRECTORIES)
 foreach(dir ${UNICORN_INCLUDES})
