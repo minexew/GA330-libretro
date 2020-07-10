@@ -11,3 +11,7 @@ int main(int argc, char* argv[]) {
     load_rom(argv[1]);
     return 0;
 }
+
+int get_keypad_state() {
+    return 0;
+}

@@ -139,7 +139,7 @@ int get_keypad_state() {
 
     // 0x80000000 - A
     // 0x40000000 - ??
-    // 0x20000000 - brings up map in-game; unclear which button
+    // 0x20000000 - X
     // 0x10000000 - left
     // 0x08000000 - down
     // 0x04000000 - ??
@@ -161,6 +161,9 @@ int get_keypad_state() {
     if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B)) {
         st |= 0x00008000;
     }
+    if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X)) {
+        st |= 0x20000000;
+    }
     if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP)) {
         st |= 0x00100000;
     }
@@ -178,7 +181,6 @@ int get_keypad_state() {
     if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L)) {
     }
     if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START)) {
-        st |= 0x20000000;
     }
 
     return st;
