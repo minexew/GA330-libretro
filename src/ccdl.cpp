@@ -157,7 +157,7 @@ int load_rom(const char* path) {
 
         printf("Failed on uc_emu_start() with error returned %u: %s\n",
             err, uc_strerror(err));
-        aborted = false;
+        aborted = true;
         return -1;
     }
 
