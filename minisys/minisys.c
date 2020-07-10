@@ -99,23 +99,54 @@ int LCDGetWidth(void) {
     return LCD_WIDTH;
 }
 
+void fsys_fclose(int* p_fd) {
+    GemeiEmu_fclose(*p_fd);
+}
+
 void* fsys_fopen(const char* path, const char* mode) {
     ccos_trace_stub(fsys_fopen);
     int fd = GemeiEmu_fopen(path, mode);
-    //return malloc(4);
-    return NULL;    // FIXME
+
+    if (fd >= 0) {
+        // Some shitty library code assumes that we return a pointer to readable memory
+        int* p_fd = malloc(sizeof(int));
+        *p_fd = fd;
+        return p_fd;
+    }
+    else {
+        return NULL;
+    }
 }
 
 void* fsys_fopenW(const char16_t* path, const char* mode) {
     ccos_trace_stub(fsys_fopenW);
     int fd = GemeiEmu_fopenW(path, mode);
-    //return malloc(4);
-    return NULL;    // FIXME
+
+    if (fd >= 0) {
+        // Some shitty library code assumes that we return a pointer to readable memory
+        int* p_fd = malloc(sizeof(int));
+        *p_fd = fd;
+        return p_fd;
+    }
+    else {
+        return NULL;
+    }
 }
 
-int fsys_fread(int arg1, int arg2, int arg3, int arg4) {
-    ccos_trace_stub(fsys_fread);
-    return 0;
+int fsys_fread(void* arg1, int arg2, int arg3, int* p_fd) {
+    return GemeiEmu_fread(arg1, arg2, arg3, *p_fd);
+}
+
+int fsys_fseek(int* p_fd, int arg2, int arg3) {
+    return GemeiEmu_fseek(*p_fd, arg2, arg3);
+}
+
+int fsys_ftell(int* p_fd) {
+    return GemeiEmu_ftell(*p_fd);
+}
+
+int fsys_fwrite(void* arg1, int arg2, int arg3, int* p_fd) {
+    return GemeiEmu_fwrite(arg1, arg2, arg3, *p_fd);
 }
 
 void OSTimeDly(int ms) {

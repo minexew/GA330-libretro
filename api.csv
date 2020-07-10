@@ -94,7 +94,7 @@ fsys_chdirW,ABORT,,
 fsys_chmod,ABORT,,
 fsys_chmodW,ABORT,,
 fsys_clearerr,ABORT,,
-fsys_fclose,STUB,,
+fsys_fclose,MINISYS,,
 fsys_fcloseW,ABORT,,
 fsys_feof,ABORT,,
 fsys_ferror,ABORT,,
@@ -109,9 +109,9 @@ fsys_fopen,MINISYS,,
 fsys_fopenW,MINISYS,,
 fsys_format,ABORT,,
 fsys_fread,MINISYS,,
-fsys_fseek,ABORT,,
-fsys_ftell,ABORT,,
-fsys_fwrite,STUB,,
+fsys_fseek,MINISYS,,
+fsys_ftell,MINISYS,,
+fsys_fwrite,MINISYS,,
 fsys_get_free,ABORT,,
 fsys_getfn,ABORT,,
 fsys_getfnW,ABORT,,
@@ -132,8 +132,13 @@ fsys_statW,ABORT,,
 fsys_update,ABORT,,
 GAMExit,ABORT,,
 GAMInit,ABORT,,
+GemeiEmu_fclose,EMU,,"void GemeiEmu_fclose(int file)"
 GemeiEmu_fopen,EMU,,"int GemeiEmu_fopen(const char* path, const char* mode)"
 GemeiEmu_fopenW,EMU,,"int GemeiEmu_fopenW(const char16_t* path, const char* mode)"
+GemeiEmu_fread,EMU,,"int GemeiEmu_fread(void* buffer, int size, int count, int file)"
+GemeiEmu_fseek,EMU,,"int GemeiEmu_fseek(int file, int arg2, int arg3)"
+GemeiEmu_ftell,EMU,,"int GemeiEmu_ftell(int file)"
+GemeiEmu_fwrite,EMU,,"int GemeiEmu_fwrite(void const* buffer, int size, int count, int file)"
 GemeiEmu_getKeyPad,EMU,,int GemeiEmu_getKeyPad(void)
 GemeiEmu_getTimeMs,EMU,,int GemeiEmu_getTimeMs(void)
 GemeiEmu_newFrame,EMU,,void GemeiEmu_newFrame(void)

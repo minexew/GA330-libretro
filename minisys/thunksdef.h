@@ -16,8 +16,11 @@
 
 void* fsys_fopen(const char* path, const char* mode);
 void* fsys_fopenW(const char16_t* path, const char* mode);
-int fsys_fread(int arg1, int arg2, int arg3, int arg4);
-//void fsys_fclose(void* f);
+int fsys_fread(void* arg1, int arg2, int arg3, int* p_fd);
+int fsys_fwrite(void* arg1, int arg2, int arg3, int* p_fd);
+int fsys_fseek(int* p_fd, int arg2, int arg3);
+int fsys_ftell(int* p_fd);
+void fsys_fclose(int* p_fd);
 
 void* GetDLHandle(void);
 void* get_dl_handle(void);
